@@ -1,0 +1,31 @@
+CMAKE_MINIMUM_REQUIRED (VERSION 3.11...3.19)
+
+SET (LIBRARY_NAME basic)
+
+PROJECT (${LIBRARY_NAME} CXX)
+
+SET (SOURCES
+    camera
+    color
+    hittable
+    material
+    ray
+    utils
+    vec
+)
+
+ADD_LIBRARY (${LIBRARY_NAME} STATIC
+    ${SOURCES}
+)
+
+TARGET_INCLUDE_DIRECTORIES (${LIBRARY_NAME} PRIVATE
+    ../../include/${LIBRARY_NAME}
+)
+
+TARGET_INCLUDE_DIRECTORIES (${LIBRARY_NAME} PUBLIC
+    ../../include/${LIBRARY_NAME}
+)
+
+TARGET_COMPILE_FEATURES (${LIBRARY_NAME} PUBLIC
+    cxx_std_11
+)
