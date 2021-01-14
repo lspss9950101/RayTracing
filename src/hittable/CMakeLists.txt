@@ -7,6 +7,7 @@ PROJECT (${LIBRARY_NAME} CXX)
 SET (SOURCES
     hittable_list
     hollow_sphere
+    moving_sphere
     sphere
     plane
 )

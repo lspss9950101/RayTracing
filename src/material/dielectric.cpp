@@ -16,7 +16,7 @@ bool dielectric::scatter(const ray &r_in, const hit_record &rec, color &attenuat
     else
         dir_o = vec3::refract(unit_dir, rec.normal, relative_index_of_refraction);
 
-    r_out = ray(rec.p, dir_o);
+    r_out = ray(rec.p, dir_o, r_in.time());
     return true;
 }
 

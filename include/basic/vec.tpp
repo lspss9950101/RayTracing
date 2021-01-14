@@ -181,7 +181,7 @@ inline DATA_TYPE dot(const vec<_dim_> &v1, const vec<_dim_> &v2) {
 
 template<size_t _dim_>
 inline vec<_dim_> interpolate(const DATA_TYPE t, const vec<_dim_> &v1, const vec<_dim_> &v2) {
-    return t * v1 + (1.0 - t) * v2;
+    return t * v2 + (1.0 - t) * v1;
 }
 
 template<size_t _dim_>

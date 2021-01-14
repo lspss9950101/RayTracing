@@ -1,6 +1,7 @@
 #include <camera.h>
 
-camera::camera(point3 lookfrom, point3 lookat, vec3 vup, DATA_TYPE vfov, DATA_TYPE aspect_ratio, DATA_TYPE aperture, DATA_TYPE focus_dist) : origin(lookfrom) {
+camera::camera(point3 lookfrom, point3 lookat, vec3 vup, DATA_TYPE vfov, DATA_TYPE aspect_ratio,
+        DATA_TYPE aperture, DATA_TYPE focus_dist, DATA_TYPE time_begin=0, DATA_TYPE time_end=0) : origin(lookfrom), time_begin(time_begin), time_end(time_end) {
     auto theta = common::d2r(vfov);
     auto h = tan(theta/2);
     auto viewport_height = 2 * h;
@@ -21,5 +22,5 @@ ray camera::get_ray(DATA_TYPE s, DATA_TYPE t) const {
     vec3 rd = lens_radius * vec3::random_in_unit_disk();
     vec3 offset = u * rd[0] + v * rd[1];
 
-    return ray(origin + offset, lower_left_corner + s*horizontal + t*vertical - origin - offset);
+    return ray(origin + offset, lower_left_corner + s*horizontal + t*vertical - origin - offset, common::random(time_begin, time_end));
 }

@@ -4,7 +4,7 @@ metal::metal(const color &albedo, const DATA_TYPE fuzziness) : albedo(albedo), f
 
 bool metal::scatter(const ray &r_in, const hit_record &rec, color &attenuation, ray &r_out) const {
     vec3 reflected = vec3::reflect(r_in.direction().unit(), rec.normal);
-    r_out = ray(rec.p, reflected + vec3::random_in_unit_sphere() * fuzziness);
+    r_out = ray(rec.p, reflected + vec3::random_in_unit_sphere() * fuzziness, r_in.time());
     attenuation = albedo;
     return (dot(r_out.direction(), rec.normal) > 0);
 }
