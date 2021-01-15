@@ -81,6 +81,7 @@ hittable_list random_scene() {
 }
 
 int main(int argc, char **argv) {
+    std::ios_base::sync_with_stdio(false);
 
     std::fstream file;
     file.open("image.ppm", std::ios::out);
@@ -92,6 +93,7 @@ int main(int argc, char **argv) {
     const int max_depth = 50;
 
     auto world = random_scene();
+    shared_ptr<hittable> world_ptr = make_shared<hittable_list>(world);
 
     point3 lookfrom({13, 2, 5});
     point3 lookat({0, 0.5, 0});
@@ -100,30 +102,30 @@ int main(int argc, char **argv) {
     auto aperture = 0.1;
     camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus, 0, 0.3);
 
-    thread_pool pool(10);
+    thread_pool pool(10, ray_color);
 
     file << "P3\n" << image_width << " " << image_height << "\n255\n";
     std::cerr << "Outputing image " << image_width << 'x' << image_height << " samples per pixel: " << samples_per_pixel << "\n";
     
+    shared_ptr<color[]> shaded(new color[image_height * image_width]);
     for(int i = image_height-1; i >= 0; i--) {
         std::cerr << "\rScanlines Remaining: " << i << ' ' << std::flush;
-        std::future<color> tracer[image_width];
         for(int j = 0; j < image_width; j++) {
-            tracer[j] = pool.commit([samples_per_pixel, image_width, image_height, cam, world, max_depth] (int x, int y) -> color {
-                color c({0,0,0});
-                for(int s = 0; s < samples_per_pixel; s++) {
-                    double u = (x + common::random()) / (image_width-1);
-                    double v = (y + common::random()) / (image_height-1);
-                    ray r = cam.get_ray(u, v);
-                    c += ray_color(r, world, max_depth);
-                }
-                return c;
-            }, j, i);
+            for(int k = 0; k < samples_per_pixel; k++) {
+                auto u = (j + common::random()) / (image_width + 1);
+                auto v = (i + common::random()) / (image_height + 1);
+                ray r = cam.get_ray(u, v);
+                pool.push_task(r, world_ptr, max_depth, i * image_width + j, shaded);
+            }
         }
-        for(int j = 0; j < image_width; j++)
-            write_color(file, tracer[j].get(), samples_per_pixel);
     }
 
+    pool.join();
+
+    for(int i = image_height-1; i >= 0; i--)
+        for(int j = 0; j < image_width; j++)
+            write_color(file, shaded[i * image_width + j], samples_per_pixel);
+    file << std::flush;
     std::cerr << "\nDone\n";
 
     return 0;
