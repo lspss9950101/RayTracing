@@ -31,6 +31,19 @@ bool moving_sphere::hit(const ray &r, DATA_TYPE t_min, DATA_TYPE t_max, hit_reco
     return true;
 }
 
+bool moving_sphere::bounding_box(DATA_TYPE time0, DATA_TYPE time1, aabb &output_box) const {
+    aabb box0(
+        center(time0) - vec3({radius, radius, radius}),
+        center(time0) + vec3({radius, radius, radius})
+    );
+    aabb box1(
+        center(time1) - vec3({radius, radius, radius}),
+        center(time1) + vec3({radius, radius, radius})
+    );
+    output_box = aabb::surrounding_box(box0, box1);
+    return true;
+}
+
 point3 moving_sphere::center(DATA_TYPE time) const {
     return interpolate((time - time_begin) / (time_end - time_begin), center_begin, center_end);
 }

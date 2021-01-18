@@ -1,13 +1,13 @@
-CMAKE_MINIMUM_REQUIRED (VERSION 2.8...3.19)
-
 SET (LIBRARY_NAME material)
 
 PROJECT (${LIBRARY_NAME} CXX)
 
 SET (SOURCES
+    dielectric
+    diffuse_light
+    isotropic
     lambertian
     metal
-    dielectric
 )
 
 ADD_LIBRARY (${LIBRARY_NAME} STATIC
@@ -16,6 +16,7 @@ ADD_LIBRARY (${LIBRARY_NAME} STATIC
 
 TARGET_LINK_LIBRARIES (${LIBRARY_NAME} PUBLIC
     basic
+    texture
 )
 
 TARGET_INCLUDE_DIRECTORIES (${LIBRARY_NAME} PRIVATE

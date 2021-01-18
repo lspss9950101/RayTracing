@@ -2,6 +2,7 @@ SET (LIBRARIES
     basic
     hittable
     material
+    texture
     thread_pool
 )
 

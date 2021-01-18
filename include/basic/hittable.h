@@ -1,6 +1,7 @@
 #pragma once
 
 #include <common.h>
+#include <aabb.h>
 
 class material;
 
@@ -9,6 +10,8 @@ struct hit_record {
     vec3 normal;
     shared_ptr<material> mat_ptr;
     DATA_TYPE t;
+    DATA_TYPE u;
+    DATA_TYPE v;
 
     bool hit_front_face;
 
@@ -21,4 +24,5 @@ struct hit_record {
 class hittable {
     public:
         virtual bool hit(const ray &r, DATA_TYPE t_min, DATA_TYPE t_max, hit_record &rec) const = 0;
+        virtual bool bounding_box(DATA_TYPE time0, DATA_TYPE time1, aabb &output_box) const = 0;
 };

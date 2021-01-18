@@ -24,3 +24,7 @@ ray camera::get_ray(DATA_TYPE s, DATA_TYPE t) const {
 
     return ray(origin + offset, lower_left_corner + s*horizontal + t*vertical - origin - offset, common::random(time_begin, time_end));
 }
+
+void camera::set_color_function(color (*ray_color)(const ray&, const color&, const hittable&, int)) {
+    color_function = ray_color;
+}

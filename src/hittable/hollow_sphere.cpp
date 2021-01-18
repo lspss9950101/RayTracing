@@ -23,3 +23,7 @@ bool hollow_sphere::hit(const ray &r, DATA_TYPE t_min, DATA_TYPE t_max, hit_reco
 
     return hit_something;
 }
+
+bool hollow_sphere::bounding_box(DATA_TYPE time0, DATA_TYPE time1, aabb &output_box) const {
+    return outer.bounding_box(time0, time1, output_box);
+}

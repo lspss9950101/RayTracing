@@ -1,15 +1,18 @@
-CMAKE_MINIMUM_REQUIRED (VERSION 2.8...3.19)
-
 SET (LIBRARY_NAME hittable)
 
 PROJECT (${LIBRARY_NAME} CXX)
 
 SET (SOURCES
+    box
+    bvh
+    constant_medium
     hittable_list
     hollow_sphere
     moving_sphere
+    rect
+    rotation
     sphere
-    plane
+    translation
 )
 
 ADD_LIBRARY (${LIBRARY_NAME} STATIC

@@ -1,15 +1,16 @@
-CMAKE_MINIMUM_REQUIRED (VERSION 2.8...3.19)
-
 SET (LIBRARY_NAME basic)
 
 PROJECT (${LIBRARY_NAME} CXX)
 
 SET (SOURCES
+    aabb
     camera
     color
     hittable
     material
+    perlin
     ray
+    texture
     utils
     vec
 )

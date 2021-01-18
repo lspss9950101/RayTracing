@@ -16,8 +16,8 @@ TARGET_LINK_LIBRARIES (${PROJECT_NAME}
     basic
     hittable
     material
+    texture
     thread_pool
-    Threads::Threads
 )
 
 TARGET_INCLUDE_DIRECTORIES (${PROJECT_NAME} PUBLIC

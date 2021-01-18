@@ -25,7 +25,24 @@ bool sphere::hit(const ray &r, DATA_TYPE t_min, DATA_TYPE t_max, hit_record &rec
     rec.p = r.at(root);
     vec3 outward_normal = (rec.p - center) / radius;
     rec.set_normal(r, outward_normal);
+    get_uv(outward_normal, rec.u, rec.v);
     rec.mat_ptr = mat_ptr;
 
     return true;
+}
+
+bool sphere::bounding_box(DATA_TYPE time0, DATA_TYPE time1, aabb &output_box) const {
+    output_box = aabb(
+        center - vec3({radius, radius, radius}),
+        center + vec3({radius, radius, radius})
+    );
+    return true;
+}
+
+void sphere::get_uv(const point3 &p, DATA_TYPE &u, DATA_TYPE &v) {
+    auto theta = acos(-p[1]);
+    auto phi = atan2(-p[2], p[0]) + common::pi;
+
+    u = phi / (2 * common::pi);
+    v = theta / common::pi;
 }
