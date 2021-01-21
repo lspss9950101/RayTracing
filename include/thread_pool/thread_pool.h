@@ -40,7 +40,7 @@ class thread_pool {
 
         void push_task(task* new_task);
 
-        void join(int batch_size);
+        void join();
 
         void start();
 };

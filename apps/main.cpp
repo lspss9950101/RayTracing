@@ -257,7 +257,7 @@ hittable_list DNA_scene() {
     return world;
 }
 
-vec3 waterwave_normal_function(const point3 &p) {
+vec3 custom_normal_function(const point3 &p) {
     static perlin noise;
     vec3 normal({0, -1, 0});
     return normal + noise.noise(p * 0.0001) * vec3({1, 0, 1});
@@ -299,6 +299,38 @@ void undersea_scene(hittable_list &world, hittable_list &lights) {
     world.add(make_shared<bvh_node>(objs, 0, 0));
 }
 
+void deepsea_scene(hittable_list &world, hittable_list &lights) {
+    auto box = make_shared<hittable_list>();
+    box->add(make_shared<aarect<0, 2>>(-800, 800, -800, 800, -100, make_shared<lambertian>(color({0.4, 0.4, 0.4}))));
+    auto boundary = make_shared<aabox>(point3({-800, -100, -800}), point3({800, 800, 800}), shared_ptr<material>());
+    box->add(make_shared<constant_medium>(boundary, 0.005, make_shared<solid_color>(0.6, 0.6, 0.8)));
+
+    hittable_list objs;
+    
+    for(int i = -200; i <= 200; i += 20) {
+        for(int j = -200; j <= 200; j += 20) {
+            int rnd_num = common::random(1, 6);
+            for(int k = 0; k < rnd_num; k++) {
+                double x = common::random(i-20, i+20);
+                double y = -95;
+                double z = common::random(k-20, k+20);
+
+                if(common::random() < 0.5) {
+                    auto light = make_shared<sphere>(point3({x, y, z}), 5, make_shared<diffuse_light>(color({1, 1, 1}) * common::random(1, 10)));
+                    objs.add(light);
+                    lights.add(light);                
+                } else {
+                    objs.add(make_shared<sphere>(point3({x, y, z}), 5, make_shared<lambertian>(color({1, 1, 1}))));
+                }
+            }
+        }
+    }
+
+    auto objs_bvh = make_shared<bvh_node>(objs, 0, 0);
+    world.add(box);
+    world.add(objs_bvh);
+}
+
 int main(int argc, char **argv) {
     std::ios_base::sync_with_stdio(false);
     auto start = std::chrono::steady_clock::now();
@@ -312,19 +344,38 @@ int main(int argc, char **argv) {
     const int samples_per_pixel = argc > 2 ? atoi(argv[2]) : 100;
     const int max_depth = argc > 3 ? atoi(argv[3]) : 50;
 
-    point3 lookfrom({0, 0, -500});
-    point3 lookat({0, 0, 0});
-    double vfov = 40.0;
-    double aperture = 0;
-    vec3 vup({0, 1, 0});
+    point3 lookfrom;
+    point3 lookat;
+    double vfov;
+    double aperture;
+    vec3 vup;
+    color background;
     double dist_to_focus = 10;
     double time0 = 0;
     double time1 = 1.0;
-    color background({0, 0, 0});
     hittable_list world;
     hittable_list lights;
     
-    undersea_scene(world, lights);
+    switch(2) {
+        case 1:
+            undersea_scene(world, lights);
+            lookfrom = point3({0, 0, -500});
+            lookat = point3({0, 0, 0});
+            vfov = 40;
+            aperture = 0;
+            vup = vec3({0, 1, 0});
+            background = color({0, 0, 0});
+            break;
+        case 2:
+            deepsea_scene(world, lights);
+            lookfrom = point3({0, 0, -500});
+            lookat = point3({0, 0, 0});
+            vfov = 40;
+            aperture = 0;
+            vup = vec3({0, 1, 0});
+            background = color({0, 0, 0});
+            break;
+    }
 
     bvh_node world_bvh = bvh_node(world, time0, time1);
     shared_ptr<hittable> world_ptr = make_shared<bvh_node>(world_bvh);
@@ -334,58 +385,60 @@ int main(int argc, char **argv) {
     cam.set_color_function(ray_color);
     auto cam_ptr = make_shared<camera>(cam);
 
-    thread_pool pool(10, 100);
-    pool.start();
+    {
 
-    file << "P3\n" << image_width << " " << image_height << "\n255\n";
-    std::cerr << "- Outputing image " << image_width << 'x' << image_height
-              << "\n- Samples per pixel: " << samples_per_pixel
-              << "\n- Max depth : " << max_depth << "\n" << std::endl;
-    
-    shared_ptr<color[]> shaded(new color[image_height * image_width]);
-    for(int i = image_height-1; i >= 0; i--) {
-        std::cerr << "\rProgress : " << std::setw(5) << (image_height-i) << " / " << std::setw(5) << image_height << "  -  " << std::fixed << std::setw(6) << std::setprecision(2) << 100.f * (image_height-i) / image_height << "% ";
-        for(int j = 0; j < image_width; j++) {
-            thread_pool::task *new_task = new thread_pool::task({
-                .x = j,
-                .y = i,
-                .depth = max_depth,
-                .image_height = image_height,
-                .image_width = image_width,
-                .sample_per_pixel = samples_per_pixel,
-                .world = world_ptr,
-                .lights = light_ptr,
-                .shaded = shaded,
-                .cam = cam_ptr,
-                .background = background
-            });
-            pool.push_task(new_task);
+        thread_pool pool(10, 100);
+        pool.start();
+
+        file << "P3\n" << image_width << " " << image_height << "\n255\n";
+        std::cerr << "- Outputing image " << image_width << 'x' << image_height
+                << "\n- Samples per pixel: " << samples_per_pixel
+                << "\n- Max depth : " << max_depth << "\n" << std::endl;
+        
+        shared_ptr<color[]> shaded(new color[image_height * image_width]);
+        for(int i = image_height-1; i >= 0; i--) {
+            std::cerr << "\rProgress : " << std::setw(5) << (image_height-i) << " / " << std::setw(5) << image_height << "  -  " << std::fixed << std::setw(6) << std::setprecision(2) << 100.f * (image_height-i) / image_height << "% ";
+            for(int j = 0; j < image_width; j++) {
+                thread_pool::task *new_task = new thread_pool::task({
+                    .x = j,
+                    .y = i,
+                    .depth = max_depth,
+                    .image_height = image_height,
+                    .image_width = image_width,
+                    .sample_per_pixel = samples_per_pixel,
+                    .world = world_ptr,
+                    .lights = light_ptr,
+                    .shaded = shaded,
+                    .cam = cam_ptr,
+                    .background = background
+                });
+                pool.push_task(new_task);
+            }
         }
+
+        pool.join();
+
+        for(int i = image_height-1; i >= 0; i--)
+            for(int j = 0; j < image_width; j++)
+                write_color(file, shaded[i * image_width + j], samples_per_pixel);
+        file << std::flush;
+        std::cerr << "\nDone\n";
+
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
+        auto c = elapsed.count();
+        std::ostringstream oss;
+        oss << std::setw(3)
+            << (c / 1000 / 60)
+            << " minutes "
+            << std::setfill('0')
+            << std::setw(2)
+            << (c / 1000) % 60
+            << "."
+            << std::setw(3)
+            << c % 1000
+            << " seconds";
+        
+        std::cerr << "Elapsed time : " << oss.str() << std::endl;
     }
-
-    pool.join(image_width);
-
-    for(int i = image_height-1; i >= 0; i--)
-        for(int j = 0; j < image_width; j++)
-            write_color(file, shaded[i * image_width + j], samples_per_pixel);
-    file << std::flush;
-    std::cerr << "\nDone\n";
-
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
-    auto c = elapsed.count();
-    std::ostringstream oss;
-    oss << std::setw(3)
-        << (c / 1000 / 60)
-        << " minutes "
-        << std::setfill('0')
-        << std::setw(2)
-        << (c / 1000) % 60
-        << "."
-        << std::setw(3)
-        << c % 1000
-        << " seconds";
-    
-    std::cerr << "Elapsed time : " << oss.str() << std::endl;
-
     return 0;
 }

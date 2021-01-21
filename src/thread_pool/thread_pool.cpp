@@ -17,7 +17,7 @@ thread_pool::thread_pool(int thread_num, int task_num_limit) : thread_num(thread
 }
 
 thread_pool::~thread_pool() {
-    join(2e8);
+    join();
 }
 
 void* thread_pool::worker_function(void *arg) {
@@ -59,18 +59,13 @@ void thread_pool::push_task(thread_pool::task *new_task) {
     task_num++;
 }
 
-void thread_pool::join(int batch_size) {
+void thread_pool::join() {
     if(already_joined) return;
     already_joined = true;
-    int t = 0;
-    std::cerr << "\n";
-    for(int i = 0; i < task_num; i++) {
+    for(int i = 0; i < task_num; i++)
         sem_wait(&remaining_task);
-        t++;
-    }
-    for(auto &thread : pool) {
+    for(auto &thread : pool)
         pthread_cancel(thread);
-    }
 }
 
 void thread_pool::start() {
