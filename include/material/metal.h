@@ -11,5 +11,5 @@ class metal : public material {
     public:
         metal(const color &albedo, const DATA_TYPE fuzziness = 0);
         
-        virtual bool scatter(const ray &r_in, const hit_record &rec, color &attenuation, ray &r_out) const override;
+        virtual bool scatter(const ray &r_in, const hit_record &rec, scatter_record &srec) const override;
 };

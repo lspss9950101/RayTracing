@@ -17,7 +17,7 @@ bool aabox::hit(const ray &r_in, DATA_TYPE t_min, DATA_TYPE t_max, hit_record &r
     return faces.hit(r_in, t_min, t_max, rec);
 }
 
-bool aabox::bounding_box(DATA_TYPE time0, DATA_TYPE time1, aabb &output_box) const {
+bool aabox::bounding_box(DATA_TYPE, DATA_TYPE, aabb &output_box) const {
     output_box = aabb(box_min, box_max);
     return true;
 }

@@ -56,7 +56,7 @@ bool bvh_node::hit(const ray &r, DATA_TYPE t_min, DATA_TYPE t_max, hit_record &r
     return hit_left || hit_right;
 }
 
-bool bvh_node::bounding_box(DATA_TYPE time0, DATA_TYPE time1, aabb &output_box) const {
+bool bvh_node::bounding_box(DATA_TYPE, DATA_TYPE, aabb &output_box) const {
     if(left == NULL || right == NULL) return false;
     output_box = box;
     return true;

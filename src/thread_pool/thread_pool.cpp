@@ -36,7 +36,7 @@ void* thread_pool::worker_function(void *arg) {
             auto u = (t->x + common::random()) / (t->image_width + 1);
             auto v = (t->y + common::random()) / (t->image_height + 1);
             ray r = t->cam->get_ray(u, v);
-            shaded += t->cam->color_function(r, t->background, *(t->world), t->depth);
+            shaded += t->cam->color_function(r, t->background, t->world, t->lights, t->depth);
         }
 
         sem_wait(&pool->mutex_write_result);
@@ -67,8 +67,6 @@ void thread_pool::join(int batch_size) {
     for(int i = 0; i < task_num; i++) {
         sem_wait(&remaining_task);
         t++;
-        if(t % batch_size == 0)
-            std::cerr << "\rProgress : " << std::setw(5) << t / batch_size << " / " << std::setw(5) << task_num / batch_size << "  -  " << std::fixed << std::setw(6) << std::setprecision(2) << 100.f * (t+1) / task_num << "% ";
     }
     for(auto &thread : pool) {
         pthread_cancel(thread);

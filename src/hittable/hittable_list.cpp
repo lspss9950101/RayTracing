@@ -46,3 +46,17 @@ bool hittable_list::bounding_box(DATA_TYPE time0, DATA_TYPE time1, aabb &output_
     }
     return true;
 }
+
+DATA_TYPE hittable_list::pdf_value(const vec3 &origin, const vec3 &dir) const {
+    DATA_TYPE weight = 1.0 / objs.size();
+    DATA_TYPE sum = 0;
+
+    for(const auto &obj : objs)
+        sum += weight * obj->pdf_value(origin, dir);
+
+    return sum;
+}
+
+vec3 hittable_list::random(const vec3 &origin) const {
+    return objs[common::random(0, objs.size())]->random(origin);
+}

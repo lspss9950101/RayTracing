@@ -1,6 +1,7 @@
 #include <basic/common.h>
 #include <basic/hittable.h>
 #include <basic/camera.h>
+#include <basic/material.h>
 #include <hittable/sphere.h>
 #include <hittable/hittable_list.h>
 #include <hittable/hollow_sphere.h>
@@ -11,12 +12,15 @@
 #include <hittable/translation.h>
 #include <hittable/rotation.h>
 #include <hittable/constant_medium.h>
+#include <hittable/flip_face.h>
 #include <material/lambertian.h>
 #include <material/metal.h>
 #include <material/dielectric.h>
 #include <material/diffuse_light.h>
 #include <texture/checker_texture.h>
 #include <texture/noise_texture.h>
+#include <pdf/hittable_pdf.h>
+#include <pdf/mixture_pdf.h>
 
 #include <thread_pool/thread_pool.h>
 #include <cstdlib>
@@ -26,20 +30,31 @@
 #include <chrono>
 #include <iomanip>
 
-color ray_color(const ray &r, const color &background, const hittable &world, int depth=20) {
+color ray_color(const ray &r, const color &background, const shared_ptr<hittable> world, const shared_ptr<hittable> lights, int depth=20) {
     if(depth <= 0) return color({0,0,0});
 
     hit_record rec;
-    if(!world.hit(r, 0.0001, common::inf, rec)) return background;
+    if(!world->hit(r, 0.0001, common::inf, rec)) return background;
 
-    ray scattered;
-    color attenuation;
-    color emitted = rec.mat_ptr->emitted(rec.u, rec.v, rec.p);
-
-    if(!rec.mat_ptr->scatter(r, rec, attenuation, scattered))
+    scatter_record srec;
+    color emitted = rec.mat_ptr->emitted(r, rec, rec.u, rec.v, rec.p);
+    if(!rec.mat_ptr->scatter(r, rec, srec))
         return emitted;
+
+    if(srec.is_specular)
+        return srec.attenuation
+            * ray_color(srec.specular_ray, background, world, lights, depth-1);
     
-    return emitted + attenuation * ray_color(scattered, background, world, depth-1);
+    auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
+    mixture_pdf mixed_pdf(light_ptr, srec.pdf_ptr);
+
+    ray scattered = ray(rec.p, mixed_pdf.generate(), r.time());
+
+    auto pdf_val = mixed_pdf.value(scattered.direction());
+
+    return emitted + srec.attenuation
+        * rec.mat_ptr->scattering_pdf(r, rec, scattered)
+        * ray_color(scattered, background, world, lights, depth-1) / pdf_val;
 }
 
 hittable_list random_scene() {
@@ -133,7 +148,7 @@ hittable_list cornell_box() {
 
     world.add(make_shared<aarect<1, 2>>(-250, 250, 0, 500, -250, green));
     world.add(make_shared<aarect<1, 2>>(-250, 250, 0, 500, 250, red));
-    world.add(make_shared<aarect<0, 2>>(-100, 100, 150, 350, 250, light));
+    world.add(make_shared<flip_face>(make_shared<aarect<0, 2>>(-100, 100, 150, 350, 250, light)));
     world.add(make_shared<aarect<0, 2>>(-250, 250, 0, 500, 250, white));
     world.add(make_shared<aarect<0, 2>>(-250, 250, 0, 500, -250, white));
     world.add(make_shared<aarect<0, 1>>(-250, 250, -250, 250, 500, white));
@@ -188,7 +203,7 @@ hittable_list DNA_scene() {
     auto light_mat = make_shared<diffuse_light>(color({40, 40, 40}));
     for(int i = -20; i <= 20; i++)
         for(int j = -20; j <= 20; j++) {
-            if(!i && !j) continue;
+            if(abs(i) < 2 && abs(j) < 2) continue;
             float x0 = i * 100 - 50;
             float x1 = i * 100 + 50;
             float z0 = j * 100 - 50;
@@ -201,28 +216,28 @@ hittable_list DNA_scene() {
 
     hittable_list dna;
     auto dna_surf_mat = make_shared<dielectric>(1.5);
-    for(float i = 0; i < 700; i+= 10) {
+    for(float i = -100; i < 700; i+= 30) {
         auto dna_mat = make_shared<solid_color>(color({0.6, 0.6, 0.7 + i / 700.f * 0.2}));
 
-        point3 p_({10 * cos(i * 0.02) - i * 0.1, 0, 10 * sin(i * 0.02)});
-        point3 p0({40 * cos(i * 0.03), i, 40 * sin(i * 0.03)});
-        point3 p1({-40 * cos(i * 0.03), i, -40 * sin(i * 0.03)});
+        point3 p_({20 * cos(i * 0.02) - i * 0.1, 0, 20 * sin(i * 0.02)});
+        point3 p0({100 * cos(i * 0.015), i, 100 * sin(i * 0.015)});
+        point3 p1({-100 * cos(i * 0.015), i, -100 * sin(i * 0.015)});
         p0 += p_;
         p1 += p_;
 
-        auto boundary = make_shared<sphere>(p0, 10, dna_surf_mat);
+        auto boundary = make_shared<sphere>(p0, 20, dna_surf_mat);
         dna.add(boundary);
         dna.add(make_shared<constant_medium>(boundary, 0.5, dna_mat));
         
-        boundary = make_shared<sphere>(p1, 10, dna_surf_mat);
+        boundary = make_shared<sphere>(p1, 20, dna_surf_mat);
         dna.add(boundary);
         dna.add(make_shared<constant_medium>(boundary, 0.5, dna_mat));
 
-        if((int)i % 20) continue;
+        //if((int)i % 10) continue;
 
-        for(float j = 1 / 10.f; j < 1; j += 1 / 10.f) {
+        for(float j = 1 / 20.f; j < 1; j += 1 / 20.f) {
             point3 p = interpolate(j, p0, p1);
-            boundary = make_shared<sphere>(p, 3, dna_surf_mat);
+            boundary = make_shared<sphere>(p, 5, dna_surf_mat);
             dna.add(boundary);
             dna.add(make_shared<constant_medium>(boundary, 0.05, dna_mat));
         }
@@ -242,6 +257,48 @@ hittable_list DNA_scene() {
     return world;
 }
 
+vec3 waterwave_normal_function(const point3 &p) {
+    static perlin noise;
+    vec3 normal({0, -1, 0});
+    return normal + noise.noise(p * 0.0001) * vec3({1, 0, 1});
+}
+
+void undersea_scene(hittable_list &world, hittable_list &lights) {
+    hittable_list box;
+    aabox boundary(point3({-400, -400, 0}), point3({400, 400, 800}), shared_ptr<material>());
+    box.add(make_shared<constant_medium>(make_shared<aabox>(boundary), 0.001, make_shared<solid_color>(color({0.8, 0.87, 1.0}))));
+    //aarect<0, 2> top(-400, 400, 0, 800, 400, make_shared<dielectric>(1 / 1.3), waterwave_normal_function);
+    //box.add(make_shared<aarect<0, 2>>(top));
+
+    hittable_list objs;
+    auto light = make_shared<aarect<0, 2>>(-800, 800, -400, 1200, 500, make_shared<diffuse_light>(color({5, 5, 5})));
+    //box.add(light);
+    //lights.add(light);
+
+    auto glass_mat = make_shared<dielectric>(1.5);
+    //auto glass_mat = make_shared<lambertian>(color({1, 0, 0}));
+    for(int i = 0; i < 16; i++) {
+        int bubble_num = i * 4 + common::random(0, 5) * i;
+        for(int j = 0; j < bubble_num; j++) {
+            double theta = common::random(0, common::pi);
+            double x = common::random(10, i*30) * cos(theta);
+            double y = 350 - 50 * i + common::random(-25, 25);
+            double z = common::random(10, i*30) * sin(theta);
+            if(common::random() < 0.8) {
+                objs.add(make_shared<sphere>(point3({x, y, z}), 10, glass_mat));
+            } else {
+                auto mat = make_shared<diffuse_light>(color::random() * color::random() * 3);
+                auto light = make_shared<sphere>(point3({x, y, z}), 10, mat);
+                objs.add(light);
+                lights.add(light);
+            }
+        }
+    }
+
+    world.add(make_shared<hittable_list>(box));
+    world.add(make_shared<bvh_node>(objs, 0, 0));
+}
+
 int main(int argc, char **argv) {
     std::ios_base::sync_with_stdio(false);
     auto start = std::chrono::steady_clock::now();
@@ -249,94 +306,30 @@ int main(int argc, char **argv) {
     std::fstream file;
     file.open("image.ppm", std::ios::out);
 
-    double aspect_ratio = 16 / 9.L;
-
-    hittable_list world;
-    bvh_node world_bvh;
-
-    point3 lookfrom;
-    point3 lookat;
-    double vfov = 40.0;
-    double aperture = 0.0;
-    vec3 vup({0, 1, 0});
-    double dist_to_focus = 10;
-    double time0 = 0;
-    double time1 = 1.0;
-    color background;
-
-    switch(8) {
-        case 1:
-            world = random_scene();
-            background = color({0.70, 0.80, 1.00});
-            lookfrom = point3({13, 2, 3});
-            lookat = point3({0, 0, 0});
-            vfov = 20.0;
-            aperture = 0.1;
-            break;
-        case 2:
-            world = two_spheres();
-            background = color({0.70, 0.80, 1.00});
-            lookfrom = point3({13, 2, 3});
-            lookat = point3({0, 0, 0});
-            vfov = 20.0;
-            break;
-        case 3:
-            world.add(make_shared<sphere>(point3({0, 0, 0}), 0.1, make_shared<lambertian>(color({0.5, 0.5, 0.5}))));
-            background = color({0.70, 0.80, 1.00});
-            lookfrom = point3({13, 2, 3});
-            lookat = point3({0, 0, 0});
-            vfov = 20.0;
-            break;
-        case 4:
-            world = two_perlin_spheres();
-            background = color({0.70, 0.80, 1.00});
-            lookfrom = point3({13, 2, 3});
-            lookat = point3({0, 0, 0});
-            vfov = 20;
-            break;
-        case 5:
-            world = simple_light();
-            background = color({0, 0, 0});
-            lookfrom = point3({26, 3, 6});
-            lookat = point3({0, 2, 0});
-            vfov = 20;
-            break;
-        case 6:
-            world = cornell_box();
-            aspect_ratio = 1;
-            background = color({0, 0, 0});
-            lookfrom = point3({0, 0, -600});
-            lookat = point3({0, 0, 0});
-            vfov = 40;
-            break;
-        case 7:
-            world = cornell_box_fog();
-            aspect_ratio = 1;
-            background = color({0, 0, 0});
-            lookfrom = point3({0, 0, -600});
-            lookat = point3({0, 0, 0});
-            vfov = 40;
-            break;
-        case 8:
-            world = DNA_scene();
-            aspect_ratio = 16 / 9.L;
-            background = color({0, 0, 0});
-            lookfrom = point3({100, 400, -800});
-            lookat = point3({-50, 300, 0});
-            vfov = 50;
-            break;
-        default:
-            background = color({0, 0, 0});
-            break;
-    }
-
+    const double aspect_ratio = 16 / 9.L;
     const int image_width = argc > 1 ? atoi(argv[1]) : 600;
     const int image_height = image_width / aspect_ratio;
     const int samples_per_pixel = argc > 2 ? atoi(argv[2]) : 100;
     const int max_depth = argc > 3 ? atoi(argv[3]) : 50;
 
-    world_bvh = bvh_node(world, time0, time1);
+    point3 lookfrom({0, 0, -500});
+    point3 lookat({0, 0, 0});
+    double vfov = 40.0;
+    double aperture = 0;
+    vec3 vup({0, 1, 0});
+    double dist_to_focus = 10;
+    double time0 = 0;
+    double time1 = 1.0;
+    color background({0, 0, 0});
+    hittable_list world;
+    hittable_list lights;
+    
+    undersea_scene(world, lights);
+
+    bvh_node world_bvh = bvh_node(world, time0, time1);
     shared_ptr<hittable> world_ptr = make_shared<bvh_node>(world_bvh);
+    shared_ptr<hittable> light_ptr = make_shared<hittable_list>(lights);
+
     camera cam(lookfrom, lookat, vup, vfov, aspect_ratio, aperture, dist_to_focus, time0, time1);
     cam.set_color_function(ray_color);
     auto cam_ptr = make_shared<camera>(cam);
@@ -351,7 +344,7 @@ int main(int argc, char **argv) {
     
     shared_ptr<color[]> shaded(new color[image_height * image_width]);
     for(int i = image_height-1; i >= 0; i--) {
-        std::cerr << "\rTask Generation Remaining: " << i << ' ';
+        std::cerr << "\rProgress : " << std::setw(5) << (image_height-i) << " / " << std::setw(5) << image_height << "  -  " << std::fixed << std::setw(6) << std::setprecision(2) << 100.f * (image_height-i) / image_height << "% ";
         for(int j = 0; j < image_width; j++) {
             thread_pool::task *new_task = new thread_pool::task({
                 .x = j,
@@ -361,6 +354,7 @@ int main(int argc, char **argv) {
                 .image_width = image_width,
                 .sample_per_pixel = samples_per_pixel,
                 .world = world_ptr,
+                .lights = light_ptr,
                 .shaded = shaded,
                 .cam = cam_ptr,
                 .background = background

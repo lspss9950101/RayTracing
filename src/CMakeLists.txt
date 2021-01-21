@@ -2,6 +2,7 @@ SET (LIBRARIES
     basic
     hittable
     material
+    pdf
     texture
     thread_pool
 )

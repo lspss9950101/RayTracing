@@ -6,6 +6,7 @@ SET (SOURCES
     box
     bvh
     constant_medium
+    flip_face
     hittable_list
     hollow_sphere
     moving_sphere

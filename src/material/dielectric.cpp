@@ -2,8 +2,10 @@
 
 dielectric::dielectric(const DATA_TYPE index_of_refraction) : index_of_refraction(index_of_refraction) {}
 
-bool dielectric::scatter(const ray &r_in, const hit_record &rec, color &attenuation, ray &r_out) const {
-    attenuation = color({1,1,1});
+bool dielectric::scatter(const ray &r_in, const hit_record &rec, scatter_record &srec) const {
+    srec.is_specular = true;
+    srec.pdf_ptr = NULL;
+    srec.attenuation = color({1,1,1});
     auto relative_index_of_refraction = rec.hit_front_face ? (1 / index_of_refraction) : index_of_refraction;
 
     vec3 unit_dir = r_in.direction().unit();
@@ -16,7 +18,7 @@ bool dielectric::scatter(const ray &r_in, const hit_record &rec, color &attenuat
     else
         dir_o = vec3::refract(unit_dir, rec.normal, relative_index_of_refraction);
 
-    r_out = ray(rec.p, dir_o, r_in.time());
+    srec.specular_ray = ray(rec.p, dir_o, r_in.time());
     return true;
 }
 

@@ -12,7 +12,7 @@ class dielectric : public material {
     public:
         dielectric(const DATA_TYPE index_of_refraction);
         
-        virtual bool scatter(const ray &r_in, const hit_record &rec, color &attenuation, ray &r_out) const override;
+        virtual bool scatter(const ray &r_in, const hit_record &rec, scatter_record &srec) const override;
 
     private:
         static DATA_TYPE reflectance(DATA_TYPE cos_theta, DATA_TYPE ref_idx);

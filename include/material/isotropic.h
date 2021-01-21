@@ -13,5 +13,5 @@ class isotropic : public material {
         isotropic(color c);
         isotropic(shared_ptr<texture> albedo);
 
-        virtual bool scatter(const ray &r_in, const hit_record &rec, color &attenuation, ray &r_out) const override;
+        virtual bool scatter(const ray &r_in, const hit_record &rec, scatter_record &srec) const override;
 };

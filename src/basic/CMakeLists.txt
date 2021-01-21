@@ -8,6 +8,8 @@ SET (SOURCES
     color
     hittable
     material
+    onb
+    pdf
     perlin
     ray
     texture

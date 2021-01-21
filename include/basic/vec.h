@@ -57,6 +57,8 @@ class vec {
         static vec<3> random_in_unit_sphere();
         static vec<3> random_on_unit_sphere();
         static vec<3> random_in_unit_disk();
+        static vec<3> random_cosine_dir();
+        static vec<3> random_to_sphere(DATA_TYPE radius, DATA_TYPE distance_squared);
         static vec<3> reflect(const vec<3> &v, const vec<3> &n);
         static vec<3> refract(const vec<3> &v, const vec<3> &n, DATA_TYPE etai_over_etat);
 };

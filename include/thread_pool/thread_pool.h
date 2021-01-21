@@ -11,6 +11,7 @@ class thread_pool {
         struct task {
             int x, y, depth, image_height, image_width, sample_per_pixel;
             shared_ptr<hittable> world;
+            shared_ptr<hittable> lights;
             shared_ptr<color[]> shaded;
             shared_ptr<camera> cam;
             color background;

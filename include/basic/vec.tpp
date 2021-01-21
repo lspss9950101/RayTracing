@@ -227,6 +227,31 @@ inline vec<3> vec<_dim_>::random_in_unit_disk() {
 }
 
 template<size_t _dim_>
+inline vec<3> vec<_dim_>::random_cosine_dir() {
+    DATA_TYPE r1 = common::random();
+    DATA_TYPE r2 = common::random();
+    DATA_TYPE z = sqrt(1 - r2);
+    DATA_TYPE phi = 2 * common::pi * r1;
+    DATA_TYPE x = cos(phi) * sqrt(r2);
+    DATA_TYPE y = sin(phi) * sqrt(r2);
+
+    return vec3({x, y, z});
+}
+
+template<size_t _dim_>
+inline vec<3> vec<_dim_>::random_to_sphere(DATA_TYPE radius, DATA_TYPE distance_squared) {
+    DATA_TYPE r1 = common::random();
+    DATA_TYPE r2 = common::random();
+    DATA_TYPE z = 1 + r2*(sqrt(1-radius*radius/distance_squared) - 1);
+
+    DATA_TYPE phi = 2*common::pi*r1;
+    DATA_TYPE x = cos(phi)*sqrt(1-z*z);
+    DATA_TYPE y = sin(phi)*sqrt(1-z*z);
+
+    return vec3({x, y, z});
+}
+
+template<size_t _dim_>
 inline vec<3> vec<_dim_>::reflect(const vec<3> &v, const vec<3> &n) {
     return v - 2*v.dot(n)*n;
 }

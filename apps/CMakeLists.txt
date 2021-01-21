@@ -18,6 +18,7 @@ TARGET_LINK_LIBRARIES (${PROJECT_NAME}
     material
     texture
     thread_pool
+    pdf
 )
 
 TARGET_INCLUDE_DIRECTORIES (${PROJECT_NAME} PUBLIC

@@ -19,8 +19,9 @@ using std::make_shared;
 using std::sqrt;
 
 namespace common {
-    const double inf = std::numeric_limits<DATA_TYPE>::infinity();
-    const double pi = 3.1415926535897932385;
+    const DATA_TYPE inf = std::numeric_limits<DATA_TYPE>::infinity();
+    const DATA_TYPE max_limit = std::numeric_limits<DATA_TYPE>::max();
+    const DATA_TYPE pi = 3.1415926535897932385;
 
     inline DATA_TYPE d2r(DATA_TYPE degrees) { return degrees * common::pi / 180; }
     inline DATA_TYPE random() {

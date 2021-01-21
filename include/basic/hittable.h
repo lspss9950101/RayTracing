@@ -25,4 +25,6 @@ class hittable {
     public:
         virtual bool hit(const ray &r, DATA_TYPE t_min, DATA_TYPE t_max, hit_record &rec) const = 0;
         virtual bool bounding_box(DATA_TYPE time0, DATA_TYPE time1, aabb &output_box) const = 0;
+        virtual DATA_TYPE pdf_value(const point3 &origin, const vec3 &dir) const;
+        virtual vec3 random(const vec3 &origin) const;
 };
